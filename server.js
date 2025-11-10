@@ -9,12 +9,12 @@ const io = new Server(server, {
 	cors: { origin: '*' }
 });
 
-app.use(express.static('public'));
-
-// Ruta raíz: mostrar splash screen
+// Ruta raíz: mostrar splash screen (debe ir ANTES de express.static)
 app.get('/', (req, res) => {
 	res.sendFile(__dirname + '/public/splash.html');
 });
+
+app.use(express.static('public'));
 
 const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 6);
 
