@@ -1,0 +1,19 @@
+INSTRUCCIONES PARA AÑADIR EL LOGO
+==================================
+
+Para que el logo aparezca en el juego, necesitas:
+
+1. Guardar tu imagen del logo en esta carpeta (public/)
+2. Nombrarla exactamente: logo.png
+3. La imagen debe estar en formato PNG (o puedes cambiar la extensión en los archivos HTML)
+
+El logo aparecerá automáticamente en:
+- La página principal (index.html)
+- La página de la sala (room.html)
+
+Si tu imagen tiene otro nombre o formato, puedes cambiarlo en:
+- public/index.html (línea 12)
+- public/room.html (línea 12)
+
+Tamaño recomendado: 300px de ancho aproximadamente (se ajustará automáticamente)
+

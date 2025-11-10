@@ -8,8 +8,11 @@
 </head>
 <body>
 	<div class="container">
-		<div class="row" style="justify-content: space-between;">
-			<h1>Sala</h1>
+		<div class="logo-container" style="margin-bottom: 16px;">
+			<img src="/logo.png" alt="Trivial Racing" style="max-width: 200px;" />
+		</div>
+		<div class="row" style="justify-content: space-between; align-items: center;">
+			<h1 style="margin: 0;">Sala</h1>
 			<div id="token-tag" class="tag">TOKEN</div>
 		</div>
 		<div id="view-waiting" class="card" style="display:none">
@@ -138,11 +141,11 @@
 			const status = document.getElementById('answer-status');
 			const youScored = scored.find(s => s.playerId === youId)?.points || 0;
 			if (youScored > 0) {
-				status.innerHTML = `<span class="tag" style="background:#0b2f1a;border-color:#14532d;color:#86efac">+${youScored} puntos</span>`;
+				status.innerHTML = `<span class="tag" style="background:linear-gradient(135deg, #10b981 0%, #059669 100%);border:none;color:#ffffff">+${youScored} puntos</span>`;
 			} else if (selected) {
-				status.innerHTML = `<span class="tag" style="background:#3a1010;border-color:#7f1d1d;color:#fecaca">0 puntos</span>`;
+				status.innerHTML = `<span class="tag" style="background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);border:none;color:#ffffff">0 puntos</span>`;
 			} else {
-				status.innerHTML = `<span class="tag">Sin respuesta</span>`;
+				status.innerHTML = `<span class="tag" style="background:var(--text-light);border:none;color:#ffffff">Sin respuesta</span>`;
 			}
 		}
 
