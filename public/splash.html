@@ -61,15 +61,42 @@
 		let soundEnabled = false;
 		
 		function enableSound() {
-			if (!soundEnabled) {
+			if (!soundEnabled && video) {
 				video.muted = false;
+				// Asegurar que el video continúe reproduciéndose con sonido
+				video.play().catch(err => {
+					console.log('Error al reproducir con sonido:', err);
+				});
 				soundEnabled = true;
 			}
 		}
 		
-		// Habilitar sonido al hacer clic o tocar
+		// Habilitar sonido al hacer clic o tocar en cualquier parte de la página
 		document.addEventListener('click', enableSound, { once: true });
 		document.addEventListener('touchstart', enableSound, { once: true });
+		
+		// Permitir saltar el video con la tecla Escape o clic
+		let skipAllowed = false;
+		let clickCount = 0;
+		
+		// Cuando el video esté listo
+		video.addEventListener('loadeddata', () => {
+			// Intentar habilitar sonido automáticamente si es posible
+			video.play().then(() => {
+				// Si el navegador permite autoplay con sonido, desmutear
+				if (!video.muted) {
+					soundEnabled = true;
+				}
+			}).catch(() => {
+				// Si no permite autoplay con sonido, esperar interacción del usuario
+				console.log('Esperando interacción del usuario para activar sonido');
+			});
+			
+			// Permitir saltar después de 1 segundo de reproducción
+			setTimeout(() => {
+				skipAllowed = true;
+			}, 1000);
+		});
 		
 		// Mostrar loading cuando el video termine
 		video.addEventListener('ended', () => {
@@ -88,15 +115,6 @@
 			}, 1000);
 		});
 		
-		// Permitir saltar el video con la tecla Escape o clic
-		let skipAllowed = false;
-		video.addEventListener('loadeddata', () => {
-			// Permitir saltar después de 1 segundo de reproducción
-			setTimeout(() => {
-				skipAllowed = true;
-			}, 1000);
-		});
-		
 		function skipVideo() {
 			if (skipAllowed) {
 				video.pause();
@@ -111,9 +129,12 @@
 			}
 		});
 		
-		// Saltar con doble clic
-		let clickCount = 0;
-		video.addEventListener('click', () => {
+		// Habilitar sonido cuando se hace clic en el video (además de saltar)
+		video.addEventListener('click', (e) => {
+			// Primero intentar habilitar sonido
+			enableSound();
+			
+			// Luego manejar el doble clic para saltar
 			clickCount++;
 			if (clickCount === 2 && skipAllowed) {
 				skipVideo();
