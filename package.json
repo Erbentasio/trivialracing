@@ -1,0 +1,18 @@
+{
+  "name": "trivial-racing",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Trivial Racing - juego formativo con salas y competición en tiempo real",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "nanoid": "^5.0.7",
+    "socket.io": "^4.7.5"
+  }
+}
+
+

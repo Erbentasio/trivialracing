@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Trivial Racing</title>
+	<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+	<div class="container">
+		<h1>Trivial Racing</h1>
+		<div class="card">
+			<h2>Crear Sala</h2>
+			<label>Tu nombre</label>
+			<input id="create-name" type="text" placeholder="Nombre">
+			<button id="create-btn">Crear</button>
+		</div>
+		<div class="card">
+			<h2>Unirse a Sala</h2>
+			<label>Token de sala</label>
+			<input id="join-token" type="text" placeholder="ABC123" maxlength="6">
+			<label>Tu nombre</label>
+			<input id="join-name" type="text" placeholder="Nombre">
+			<button id="join-btn">Unirse</button>
+		</div>
+		<p class="footnote">Máximo 12 jugadores por sala.</p>
+	</div>
+	<script src="/socket.io/socket.io.js"></script>
+	<script>
+		const socket = io();
+		const toRoom = (token, name) => {
+			sessionStorage.setItem('tr_name', name);
+			window.location.href = `/room.html?token=${encodeURIComponent(token)}`;
+		};
+		document.getElementById('create-btn').onclick = () => {
+			const name = document.getElementById('create-name').value.trim();
+			socket.emit('room:create', { name }, (res) => {
+				if (res?.ok) toRoom(res.token, name);
+				else alert(res?.error || 'Error creando sala');
+			});
+		};
+		document.getElementById('join-btn').onclick = () => {
+			const token = document.getElementById('join-token').value.trim().toUpperCase();
+			const name = document.getElementById('join-name').value.trim();
+			if (!token) return alert('Introduce el token de la sala');
+			socket.emit('room:join', { token, name }, (res) => {
+				if (res?.ok) toRoom(token, name);
+				else alert(res?.error || 'No se pudo entrar a la sala');
+			});
+		};
+	</script>
+	</body>
+</html>
+
+

@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Sala - Trivial Racing</title>
+	<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+	<div class="container">
+		<div class="row" style="justify-content: space-between;">
+			<h1>Sala</h1>
+			<div id="token-tag" class="tag">TOKEN</div>
+		</div>
+		<div id="view-waiting" class="card" style="display:none">
+			<div class="row" style="justify-content: space-between;">
+				<h2>Esperando jugadores</h2>
+				<div><span class="tag" id="manager-label">Manager</span></div>
+			</div>
+			<div id="grace-info" class="headline" style="display:none"></div>
+			<p class="headline">Comparte el token para que otros se unan.</p>
+			<div class="space"></div>
+			<div class="list" id="waiting-players"></div>
+			<div class="space"></div>
+			<div class="row" style="justify-content: space-between;">
+				<div class="tag" id="count-tag">0/12</div>
+				<button id="start-btn">Iniciar juego</button>
+			</div>
+		</div>
+
+		<div id="view-game" class="card" style="display:none">
+			<div class="row" style="justify-content: space-between;">
+				<h2 id="q-progress">Pregunta</h2>
+				<div class="tag" id="you-tag">Tú</div>
+			</div>
+			<div class="timer" id="timer">15</div>
+			<div class="headline big" id="q-text">Pregunta…</div>
+			<div class="options" id="q-options"></div>
+			<div class="space"></div>
+			<div class="stack" id="answer-status"></div>
+		</div>
+
+		<div id="view-results" class="card" style="display:none">
+			<h2>Ranking</h2>
+			<div class="podium-wrap">
+				<div class="podium" id="podium"></div>
+			</div>
+			<div class="rest-list" id="rest-list"></div>
+			<div class="space"></div>
+			<div class="grid2">
+				<button id="btn-home" class="secondary">Menú principal</button>
+				<button id="btn-restart">Reiniciar partida</button>
+			</div>
+		</div>
+	</div>
+	<script src="/socket.io/socket.io.js"></script>
+	<script>
+		const socket = io();
+		const qs = new URLSearchParams(location.search);
+		const token = (qs.get('token') || '').toUpperCase();
+		const savedName = sessionStorage.getItem('tr_name') || '';
+		let state = null;
+		let isManager = false;
+		let youId = null;
+		let currentQuestion = null;
+		let selected = null;
+		let countdownInt = null;
+
+		function show(view) {
+			document.getElementById('view-waiting').style.display = view === 'waiting' ? '' : 'none';
+			document.getElementById('view-game').style.display = view === 'game' ? '' : 'none';
+			document.getElementById('view-results').style.display = view === 'results' ? '' : 'none';
+		}
+
+		function renderWaiting() {
+			const el = document.getElementById('waiting-players');
+			el.innerHTML = '';
+			state.players.forEach(p => {
+				const d = document.createElement('div');
+				d.className = 'player';
+				d.innerHTML = `<span>${p.name}${p.id === state.managerId ? ' (Manager)' : ''}</span><span class="tag">${p.score} pts</span>`;
+				el.appendChild(d);
+			});
+			document.getElementById('count-tag').textContent = `${state.players.length}/12`;
+			document.getElementById('manager-label').style.display = isManager ? '' : 'none';
+			document.getElementById('start-btn').disabled = !isManager || state.players.length < 1;
+			show('waiting');
+		}
+
+		function startCountdown(startTs, durationSec) {
+			const timer = document.getElementById('timer');
+			if (countdownInt) clearInterval(countdownInt);
+			function tick() {
+				const now = Date.now();
+				const leftMs = Math.max(0, startTs + durationSec * 1000 - now);
+				timer.textContent = Math.ceil(leftMs / 1000);
+				if (leftMs <= 0) clearInterval(countdownInt);
+			}
+			tick();
+			countdownInt = setInterval(tick, 200);
+		}
+
+		function renderGameQuestion(payload) {
+			currentQuestion = payload;
+			selected = null;
+			document.getElementById('q-progress').textContent = `Pregunta ${payload.index + 1} de ${payload.total}`;
+			document.getElementById('q-text').textContent = payload.question.text;
+			const opts = document.getElementById('q-options');
+			opts.innerHTML = '';
+			const letters = ['A','B','C','D'];
+			payload.question.options.forEach((text, i) => {
+				const btn = document.createElement('div');
+				btn.className = 'option';
+				btn.textContent = text;
+				btn.onclick = () => {
+					if (selected) return;
+					selected = letters[i];
+					btn.classList.add('selected');
+					socket.emit('game:answer', { token, option: selected }, (res) => {
+						// no-op, ack below
+					});
+				};
+				opts.appendChild(btn);
+			});
+			document.getElementById('answer-status').innerHTML = '';
+			startCountdown(payload.startTs, payload.durationSec);
+			show('game');
+		}
+
+		function revealCorrect(correct, scored) {
+			const letters = ['A','B','C','D'];
+			const opts = Array.from(document.querySelectorAll('.option'));
+			opts.forEach((el, idx) => {
+				const letter = letters[idx];
+				if (letter === correct) el.classList.add('correct');
+				else el.classList.add('wrong');
+			});
+			const status = document.getElementById('answer-status');
+			const youScored = scored.find(s => s.playerId === youId)?.points || 0;
+			if (youScored > 0) {
+				status.innerHTML = `<span class="tag" style="background:#0b2f1a;border-color:#14532d;color:#86efac">+${youScored} puntos</span>`;
+			} else if (selected) {
+				status.innerHTML = `<span class="tag" style="background:#3a1010;border-color:#7f1d1d;color:#fecaca">0 puntos</span>`;
+			} else {
+				status.innerHTML = `<span class="tag">Sin respuesta</span>`;
+			}
+		}
+
+		function renderResults(list) {
+			const podium = document.getElementById('podium');
+			const rest = document.getElementById('rest-list');
+			podium.innerHTML = '';
+			rest.innerHTML = '';
+			const top3 = list.slice(0, 3);
+			const others = list.slice(3);
+			// Display order: 2nd, 1st, 3rd
+			const display = [
+				top3[1] ? { ...top3[1], pos: 2 } : null,
+				top3[0] ? { ...top3[0], pos: 1 } : null,
+				top3[2] ? { ...top3[2], pos: 3 } : null
+			].filter(Boolean);
+			display.forEach((p) => {
+				const div = document.createElement('div');
+				div.className = `place ${p.pos === 1 ? 'first' : p.pos === 2 ? 'second' : 'third'}`;
+				const medal = p.pos === 1 ? '1º' : p.pos === 2 ? '2º' : '3º';
+				div.innerHTML = `
+					<div class="medal">${medal}</div>
+					${p.pos === 1 ? '<div class="crown">👑</div>' : ''}
+					<div class="name">${p.name}</div>
+					<div class="pts">${p.score} pts</div>
+				`;
+				podium.appendChild(div);
+			});
+			// Others
+			others.forEach((p, idx) => {
+				const item = document.createElement('div');
+				item.className = 'rest-item';
+				const pos = 4 + idx;
+				item.innerHTML = `
+					<div class="pos">${pos}º</div>
+					<div class="nm">${p.name}</div>
+					<div class="sc">${p.score} pts</div>
+				`;
+				rest.appendChild(item);
+			});
+			show('results');
+		}
+
+		// UI wiring
+		document.getElementById('token-tag').textContent = token || 'SIN TOKEN';
+		document.getElementById('start-btn').onclick = () => {
+			socket.emit('game:start', { token }, (res) => {
+				if (!res?.ok) alert(res?.error || 'No se pudo iniciar');
+			});
+		};
+		document.getElementById('btn-home').onclick = () => {
+			location.href = '/';
+		};
+		document.getElementById('btn-restart').onclick = () => {
+			if (!isManager) return alert('Solo el Manager puede reiniciar');
+			socket.emit('game:restart', { token }, (res) => {
+				if (!res?.ok) alert(res?.error || 'No se pudo reiniciar');
+			});
+		};
+
+		// Socket events
+		socket.on('connect', () => {
+			youId = socket.id;
+			// Ensure we are in the room (if reloaded)
+			socket.emit('room:join', { token, name: savedName }, (res) => {
+				if (!res?.ok) {
+					alert(res?.error || 'No se pudo entrar a la sala');
+					location.href = '/';
+				} else {
+					isManager = !!res.isManager;
+				}
+			});
+		});
+
+		socket.on('room:state', (s) => {
+			state = s;
+			isManager = isManager || (s.managerId === youId);
+			document.getElementById('you-tag').textContent = isManager ? 'Tú (Manager)' : 'Tú';
+			if (s.state === 'waiting') renderWaiting();
+			if (s.state === 'in_progress') show('game');
+			if (s.state === 'results') show('results');
+		});
+		socket.on('room:grace-info', ({ minutes, expiresAt }) => {
+			// Visible solo para el manager por cómo se emite en el servidor
+			const el = document.getElementById('grace-info');
+			const date = new Date(expiresAt);
+			const hh = String(date.getHours()).padStart(2, '0');
+			const mm = String(date.getMinutes()).padStart(2, '0');
+			el.textContent = `La sala estará activa ${minutes} minutos. Si no inicia el juego antes de las ${hh}:${mm}, se borrará automáticamente.`;
+			el.style.display = '';
+		});
+		socket.on('room:expired', () => {
+			alert('La sala ha expirado por inactividad (20 minutos).');
+			location.href = '/';
+		});
+
+		socket.on('game:question', (payload) => {
+			renderGameQuestion(payload);
+		});
+
+		socket.on('game:answer:ack', () => {
+			const status = document.getElementById('answer-status');
+			status.innerHTML = `<span class="tag">Respuesta registrada</span>`;
+		});
+
+		socket.on('game:question:end', (payload) => {
+			revealCorrect(payload.correct, payload.scored);
+		});
+
+		socket.on('game:results', ({ players }) => {
+			renderResults(players);
+		});
+	</script>
+	</body>
+</html>
+
+
