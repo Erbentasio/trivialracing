@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Trivial Racing - Inicio</title>
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+		body {
+			background: #ffffff;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			min-height: 100vh;
+			overflow: hidden;
+		}
+		.video-container {
+			width: 100%;
+			height: 100vh;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			background: #ffffff;
+		}
+		video {
+			max-width: 100%;
+			max-height: 100%;
+			width: auto;
+			height: auto;
+			object-fit: contain;
+		}
+		.loading {
+			display: none;
+			position: absolute;
+			bottom: 40px;
+			left: 50%;
+			transform: translateX(-50%);
+			color: #1e293b;
+			font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+			font-size: 16px;
+		}
+	</style>
+</head>
+<body>
+	<div class="video-container">
+		<video id="splash-video" autoplay muted playsinline>
+			<source src="/logo.mp4" type="video/mp4">
+			Tu navegador no soporta la reproducción de video.
+		</video>
+		<div class="loading" id="loading">Cargando...</div>
+	</div>
+	<script>
+		const video = document.getElementById('splash-video');
+		const loading = document.getElementById('loading');
+		
+		// Habilitar sonido después de la primera interacción del usuario
+		let soundEnabled = false;
+		
+		function enableSound() {
+			if (!soundEnabled) {
+				video.muted = false;
+				soundEnabled = true;
+			}
+		}
+		
+		// Habilitar sonido al hacer clic o tocar
+		document.addEventListener('click', enableSound, { once: true });
+		document.addEventListener('touchstart', enableSound, { once: true });
+		
+		// Mostrar loading cuando el video termine
+		video.addEventListener('ended', () => {
+			loading.style.display = 'block';
+			// Redirigir a la pantalla principal después de un breve delay
+			setTimeout(() => {
+				window.location.href = '/index.html';
+			}, 500);
+		});
+		
+		// Si hay error cargando el video, redirigir directamente
+		video.addEventListener('error', () => {
+			console.error('Error cargando el video');
+			setTimeout(() => {
+				window.location.href = '/index.html';
+			}, 1000);
+		});
+		
+		// Permitir saltar el video con la tecla Escape o clic
+		let skipAllowed = false;
+		video.addEventListener('loadeddata', () => {
+			// Permitir saltar después de 1 segundo de reproducción
+			setTimeout(() => {
+				skipAllowed = true;
+			}, 1000);
+		});
+		
+		function skipVideo() {
+			if (skipAllowed) {
+				video.pause();
+				window.location.href = '/index.html';
+			}
+		}
+		
+		// Saltar con Escape
+		document.addEventListener('keydown', (e) => {
+			if (e.key === 'Escape' && skipAllowed) {
+				skipVideo();
+			}
+		});
+		
+		// Saltar con doble clic
+		let clickCount = 0;
+		video.addEventListener('click', () => {
+			clickCount++;
+			if (clickCount === 2 && skipAllowed) {
+				skipVideo();
+			}
+			setTimeout(() => {
+				clickCount = 0;
+			}, 300);
+		});
+	</script>
+</body>
+</html>
+

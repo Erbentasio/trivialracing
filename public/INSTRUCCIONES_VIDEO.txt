@@ -1,0 +1,22 @@
+INSTRUCCIONES PARA EL VIDEO SPLASH
+===================================
+
+Para que el video splash funcione correctamente:
+
+1. Guarda tu video en esta carpeta (public/)
+2. Nombrarlo exactamente: logo.mp4
+3. El video debe estar en formato MP4
+
+CARACTERÍSTICAS DEL VIDEO:
+- Se reproducirá automáticamente al entrar a la página
+- Tiene sonido (se activa después de la primera interacción del usuario)
+- Fondo blanco
+- Se ajusta automáticamente al tamaño de la pantalla
+- Después del video, redirige automáticamente a la pantalla principal
+
+CONTROLES:
+- Presiona ESC para saltar el video (después de 1 segundo)
+- Doble clic en el video para saltarlo (después de 1 segundo)
+
+NOTA: Si el video no se carga, la página redirigirá automáticamente a la pantalla principal después de 1 segundo.
+

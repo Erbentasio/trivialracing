@@ -11,6 +11,11 @@ const io = new Server(server, {
 
 app.use(express.static('public'));
 
+// Ruta raíz: mostrar splash screen
+app.get('/', (req, res) => {
+	res.sendFile(__dirname + '/public/splash.html');
+});
+
 const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 6);
 
 // In-memory store (OK for prototype)
